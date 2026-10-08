@@ -4,7 +4,7 @@ An interactive Power BI dashboard analyzing professional VALORANT play across th
 
 Built to practice the full analytics workflow: cleaning messy real-world data, modeling it, writing DAX measures, and designing reports a stakeholder can explore on their own.
 
-![Agent Meta page](screenshots/Player-Agent-Analytics.png)
+![Agent Meta page](screenshots/agent-meta.png)
 
 ## Data
 
@@ -16,11 +16,11 @@ Built to practice the full analytics workflow: cleaning messy real-world data, m
 
 The raw file had three problems that would have produced wrong numbers if left in. The fixes are in [`clean_data.py`](clean_data.py) (Python, pandas), and the output is [`data/vct2025_players_clean.csv`](data/vct2025_players_clean.csv).
 
-| Issue | Impact | Fix |
-|---|---|---|
-| **Rollup rows mixed with detail rows.** "All Stages" rows total a whole tournament, and multi-agent rows (e.g. `astra, omen`) total a player's agents for one match. | Every stat would be double- or triple-counted. | Removed both, cutting the file from 17,996 to 9,805 rows at a single consistent grain. |
-| **Clutch records corrupted into dates.** About 6,200 values like `1/3` had been auto-converted to `03-Jan`. | Clutch stats unusable for a third of the data. | Decoded the month (wins) and day (attempts) back into two numeric columns. Validated against the reported Clutch Success %: 2,654 / 2,654 rows match. |
-| **Percentages stored as text** (`"44%"`). | Can't aggregate or format. | Converted to decimals. |
+| Issue                                                                                                                                                                | Impact                                         | Fix                                                                                                                                                   |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Rollup rows mixed with detail rows.** "All Stages" rows total a whole tournament, and multi-agent rows (e.g. `astra, omen`) total a player's agents for one match. | Every stat would be double- or triple-counted. | Removed both, cutting the file from 17,996 to 9,805 rows at a single consistent grain.                                                                |
+| **Clutch records corrupted into dates.** About 6,200 values like `1/3` had been auto-converted to `03-Jan`.                                                          | Clutch stats unusable for a third of the data. | Decoded the month (wins) and day (attempts) back into two numeric columns. Validated against the reported Clutch Success %: 2,654 / 2,654 rows match. |
+| **Percentages stored as text** (`"44%"`).                                                                                                                            | Can't aggregate or format.                     | Converted to decimals.                                                                                                                                |
 
 ## Data model and measures
 
@@ -28,25 +28,27 @@ Single fact table, plus an Agent → Role column (Duelist, Initiator, Controller
 
 The measures recompute every rate from raw counts and never average the per-row averages. A player's ACS across 20 maps is weighted by rounds played, not a simple mean of 20 map-level ACS values.
 
-| Measure | DAX logic |
-|---|---|
-| Rounds | `SUM(Rounds Played)` |
-| K/D | `Total Kills ÷ Deaths` |
-| KPR | `Total Kills ÷ Rounds` |
-| ACS | Round-weighted: `SUMX(ACS × Rounds) ÷ Rounds` |
-| Entry Success | `First Kills ÷ (First Kills + First Deaths)` |
-| Clutch % | `Clutches Won ÷ Clutches Played` |
-| Agent Pick % | Agent's rounds ÷ all rounds in the current filter context |
-| Players, Agents Played | `DISTINCTCOUNT` of each |
+| Measure                     | DAX logic                                                                                                  |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Rounds                      | `SUM(Rounds Played)`                                                                                       |
+| K/D                         | `Total Kills ÷ Deaths`                                                                                     |
+| KPR                         | `Total Kills ÷ Rounds`                                                                                     |
+| ACS                         | Round-weighted: `SUMX(ACS × Rounds) ÷ Rounds`                                                              |
+| Entry Success               | `First Kills ÷ (First Kills + First Deaths)`                                                               |
+| Clutch %                    | `Clutches Won ÷ Clutches Played`                                                                           |
+| Agent Pick %                | Agent's rounds ÷ all rounds in the current filter context                                                  |
+| Players, Agents Played      | `DISTINCTCOUNT` of each                                                                                    |
 | Top Agent, Top Agent Pick % | The most-played agent (`TOPN` on rounds) and its pick rate, so the headline cards update with every filter |
 
 ## Report pages
 
 1. **Agent Meta:** headline cards (players, agents played, top agent and its pick rate) and pick rate by agent, filterable by tournament
 2. **Player Leaderboard:** a ranked table of ACS, K/D and entry success for players with 500+ rounds, and a scatter chart with a trend line comparing ACS against entry success
-3. **Team Scouting:** a team's agent pool and player performance
+3. **Team Scouting:** pick a team to see its headline stats against the league average (ACS, entry success), its agent pool, and a roster table of each player's agents (100+ rounds)
 
 ![Player Leaderboard page](screenshots/player-leaderboard.png)
+
+![Team Scouting page](screenshots/team-scouting.png)
 
 ## Key findings
 
